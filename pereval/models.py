@@ -71,3 +71,16 @@ class Pereval(models.Model):
     class Meta:
         verbose_name = 'Перевал'
         verbose_name_plural = 'Перевалы'
+
+
+class TermsAgreement(models.Model):
+    token = models.CharField(max_length=100, unique=True)
+    is_valid = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.token} - {'Активен' if self.is_valid else 'Использован'}"
+
+    class Meta:
+        verbose_name = 'Согласие с условиями'
+        verbose_name_plural = 'Согласия с условиями'
