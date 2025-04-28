@@ -4,12 +4,12 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView, RedirectView
-from .models import Pereval, TermsAgreement
+from .models import Pereval, TermsAgreement, Notification
 from .serializers import (
     PerevalSerializer,
     PerevalUpdateSerializer,
     PerevalDetailSerializer,
-    PerevalListSerializer
+    PerevalListSerializer, ModerationSerializer, NotificationSerializer
 )
 from tourist.models import Tourist
 from coordinates.models import Coords
@@ -154,3 +154,77 @@ class TermsRedirectView(RedirectView):
             return f"{return_url}&terms_token={token}"
         else:
             return f"{return_url}?terms_token={token}"
+
+
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+
+
+class ModerationView(generics.UpdateAPIView):
+    queryset = Pereval.objects.all()
+    serializer_class = ModerationSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 200,
+                'message': f'Статус перевала изменен на {instance.get_status_display()}',
+                'id': instance.id
+            })
+        return Response({
+            'status': 400,
+            'message': 'Ошибка в данных запроса',
+            'errors': serializer.errors,
+            'id': instance.id
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
+
+class PerevalSearchView(generics.ListAPIView):
+    serializer_class = PerevalListSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'level', 'area']
+    search_fields = ['title', 'beauty_title', 'other_titles', 'tourist__email', 'tourist__fam']
+    ordering_fields = ['created', 'title', 'status']
+
+    def get_queryset(self):
+        queryset = Pereval.objects.all()
+
+        # Фильтрация по высоте
+        min_height = self.request.query_params.get('min_height')
+        max_height = self.request.query_params.get('max_height')
+
+        if min_height:
+            queryset = queryset.filter(coords__height__gte=min_height)
+        if max_height:
+            queryset = queryset.filter(coords__height__lte=max_height)
+
+        # Фильтрация по дате создания
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if start_date:
+            queryset = queryset.filter(created__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created__lte=end_date)
+
+        return queryset
+
+
+class UserNotificationsView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        email = self.request.query_params.get('user__email', None)
+        if email:
+            return Notification.objects.filter(pereval__tourist__email=email, is_sent=False)
+        return Notification.objects.none()

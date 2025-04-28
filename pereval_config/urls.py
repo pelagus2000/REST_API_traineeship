@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from pereval.views import PerevalViewSet, PerevalDetailView, UserPerevalListView, TermsAgreementView, TermsRedirectView
+from pereval.views import PerevalViewSet, PerevalDetailView, UserPerevalListView, TermsAgreementView, TermsRedirectView, \
+    ModerationView, PerevalSearchView
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -43,7 +44,14 @@ urlpatterns = [
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
+    #for moderators
+    path('api/v1/pereval/<int:pk>/moderate/', ModerationView.as_view(), name='pereval-moderate'),
+
+    #search instrument
+    path('api/v1/pereval/search/', PerevalSearchView.as_view(), name='pereval-search'),
 ]
+
 
 # Настройка для обработки медиа-файлов в режиме разработки
 if settings.DEBUG:

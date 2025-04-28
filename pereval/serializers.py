@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Pereval, TermsAgreement
+from .models import Pereval, TermsAgreement, Notification
 from coordinates.serializers import CoordsSerializer
 from photo.serializers import ImageSerializer
 from tourist.serializers import TouristSerializer
@@ -86,3 +86,42 @@ class PerevalListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pereval
         fields = ['id', 'title', 'beauty_title', 'status', 'created']
+
+
+class ModerationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pereval
+        fields = ['status']
+
+    def validate_status(self, value):
+        valid_statuses = ['new', 'pending', 'accepted', 'rejected']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(f"Недопустимый статус. Допустимые значения: {', '.join(valid_statuses)}")
+        return value
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    pereval_title = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'pereval_title', 'notification_type', 'message',
+                  'is_sent', 'created', 'status_display']
+        read_only_fields = ['created', 'is_sent']
+
+    def get_pereval_title(self, obj):
+        return obj.pereval.title
+
+    def get_status_display(self, obj):
+        if obj.notification_type == 'status_change':
+            return obj.pereval.get_status_display()
+        return None
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Помечаем уведомление как отправленное при его получении через API
+        if not instance.is_sent:
+            instance.is_sent = True
+            instance.save(update_fields=['is_sent'])
+        return representation

@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'dbbackup',
+    'django_filters',
+
 
 ]
 
@@ -159,5 +161,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_RETURN_URL = 'http://localhost:8000/api/v1/submitData/'
 
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
 
 
