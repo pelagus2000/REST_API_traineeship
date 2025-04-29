@@ -18,6 +18,96 @@ import uuid
 from django.conf import settings
 
 
+# class PerevalViewSet(viewsets.ModelViewSet):
+#     queryset = Pereval.objects.all()
+#     serializer_class = PerevalSerializer
+#
+#     def get_serializer_class(self):
+#         if self.action == 'partial_update':
+#             return PerevalUpdateSerializer
+#         return PerevalSerializer
+#
+#     def create(self, request, *args, **kwargs):
+#         # Проверяем наличие токена согласия с условиями
+#         terms_token = request.data.get('terms_token')
+#         if not terms_token:
+#             return Response({
+#                 'status': 400,
+#                 'message': 'Отсутствует подтверждение согласия с условиями обработки персональных данных',
+#                 'id': None
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#
+#         # Проверяем действительность токена
+#         try:
+#             terms_agreement = TermsAgreement.objects.get(token=terms_token)
+#             if not terms_agreement.is_valid:
+#                 return Response({
+#                     'status': 400,
+#                     'message': 'Токен согласия недействителен или истек',
+#                     'id': None
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+#         except TermsAgreement.DoesNotExist:
+#             return Response({
+#                 'status': 400,
+#                 'message': 'Токен согласия не найден',
+#                 'id': None
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#
+#         serializer = self.get_serializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#
+#             # Помечаем токен как использованный
+#             terms_agreement.is_valid = False
+#             terms_agreement.save()
+#
+#             return Response({
+#                 'status': 200,
+#                 'message': 'Перевал успешно создан',
+#                 'id': serializer.instance.id
+#             }, status=status.HTTP_201_CREATED)
+#         return Response({
+#             'status': 400,
+#             'message': 'Ошибка в данных запроса',
+#             'errors': serializer.errors,
+#             'id': None
+#         }, status=status.HTTP_400_BAD_REQUEST)
+#
+#     def partial_update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#
+#         # Проверяем статус перевала, можно редактировать только со статусом "new"
+#         if instance.status != 'new':
+#             return Response({
+#                 'state': 0,
+#                 'message': f'Невозможно редактировать перевал со статусом {instance.get_status_display()}',
+#                 'id': instance.id
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#
+#         serializer = self.get_serializer(instance, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({
+#                 'state': 1,
+#                 'message': 'Перевал успешно обновлен',
+#                 'id': instance.id
+#             })
+#         return Response({
+#             'state': 0,
+#             'message': 'Ошибка в данных запроса',
+#             'errors': serializer.errors,
+#             'id': instance.id
+#         }, status=status.HTTP_400_BAD_REQUEST)
+#
+#     @action(detail=False, methods=['get'])
+#     def user_submitted(self, request):
+#         email = request.query_params.get('user__email', None)
+#         if email:
+#             perevals = Pereval.objects.filter(tourist__email=email)
+#             serializer = PerevalSerializer(perevals, many=True)
+#             return Response(serializer.data)
+#         return Response({'message': 'Email параметр не указан'}, status=status.HTTP_400_BAD_REQUEST)
+
 class PerevalViewSet(viewsets.ModelViewSet):
     queryset = Pereval.objects.all()
     serializer_class = PerevalSerializer
@@ -25,7 +115,21 @@ class PerevalViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'partial_update':
             return PerevalUpdateSerializer
+        elif self.action == 'list':
+            return PerevalListSerializer
         return PerevalSerializer
+
+    def list(self, request, *args, **kwargs):
+        # Проверяем наличие параметра user__email
+        email = request.query_params.get('user__email', None)
+        if email:
+            # Если email указан, фильтруем перевалы по email туриста
+            queryset = Pereval.objects.filter(tourist__email=email)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            # Если email не указан, используем стандартную логику для получения списка
+            return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         # Проверяем наличие токена согласия с условиями
@@ -107,7 +211,6 @@ class PerevalViewSet(viewsets.ModelViewSet):
             serializer = PerevalSerializer(perevals, many=True)
             return Response(serializer.data)
         return Response({'message': 'Email параметр не указан'}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class PerevalDetailView(generics.RetrieveAPIView):
     queryset = Pereval.objects.all()
