@@ -12,7 +12,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
 router = DefaultRouter()
-router.register(r'submitData', PerevalViewSet)
+router.register(r'submitData', PerevalViewSet, basename='submitdata')
 
 # Настройка Swagger
 schema_view = get_schema_view(

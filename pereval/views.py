@@ -113,7 +113,7 @@ class PerevalViewSet(viewsets.ModelViewSet):
     serializer_class = PerevalSerializer
 
     def get_serializer_class(self):
-        if self.action == 'partial_update':
+        if self.action == 'partial_update' or self.action == 'update':
             return PerevalUpdateSerializer
         elif self.action == 'list':
             return PerevalListSerializer
@@ -189,6 +189,33 @@ class PerevalViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'state': 1,
+                'message': 'Перевал успешно обновлен',
+                'id': instance.id
+            })
+        return Response({
+            'state': 0,
+            'message': 'Ошибка в данных запроса',
+            'errors': serializer.errors,
+            'id': instance.id
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        # Логика для PUT запросов, аналогичная partial_update
+        instance = self.get_object()
+
+        # Проверяем статус перевала, можно редактировать только со статусом "new"
+        if instance.status != 'new':
+            return Response({
+                'state': 0,
+                'message': f'Невозможно редактировать перевал со статусом {instance.get_status_display()}',
+                'id': instance.id
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({
