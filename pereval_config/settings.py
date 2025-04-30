@@ -43,6 +43,10 @@ INSTALLED_APPS = [
     'coordinates.apps.CoordinatesConfig',
     'rest_framework',
     'drf_yasg',
+    'dbbackup',
+    'django_filters',
+
+
 ]
 
 MIDDLEWARE = [
@@ -79,12 +83,12 @@ WSGI_APPLICATION = 'pereval_config.wsgi.application'
 # Database sqlite setting
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 # Database postgresql setting
 # DATABASES = {
@@ -98,16 +102,16 @@ WSGI_APPLICATION = 'pereval_config.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'pereval_db',  # имя базы данных
-        'USER': os.environ.get('FSTR_DB_LOGIN', 'postgres'),
-        'PASSWORD': os.environ.get('FSTR_DB_PASS', 'password'),
-        'HOST': os.environ.get('FSTR_DB_HOST', 'localhost'),
-        'PORT': os.environ.get('FSTR_DB_PORT', '5432'),
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'pereval_db',  # имя базы данных
+#         'USER': os.environ.get('FSTR_DB_LOGIN', 'postgres'),
+#         'PASSWORD': os.environ.get('FSTR_DB_PASS', 'password'),
+#         'HOST': os.environ.get('FSTR_DB_HOST', 'localhost'),
+#         'PORT': os.environ.get('FSTR_DB_PORT', '5432'),
+#     }
+# }
 
 
 
@@ -154,5 +158,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+DEFAULT_RETURN_URL = 'http://localhost:8000/api/v1/submitData/'
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
 
 

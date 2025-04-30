@@ -1,6 +1,7 @@
 from django.db import models
 
 from coordinates.models import Coords
+from pereval_config import settings
 from photo.models import Image
 from tourist.models import Tourist
 
@@ -71,3 +72,49 @@ class Pereval(models.Model):
     class Meta:
         verbose_name = 'Перевал'
         verbose_name_plural = 'Перевалы'
+
+
+class TermsAgreement(models.Model):
+    token = models.CharField(max_length=100, unique=True)
+    is_valid = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.token} - {'Активен' if self.is_valid else 'Использован'}"
+
+    class Meta:
+        verbose_name = 'Согласие с условиями'
+        verbose_name_plural = 'Согласия с условиями'
+
+
+class ModerationComment(models.Model):
+    pereval = models.ForeignKey(Pereval, on_delete=models.CASCADE, related_name='moderation_comments')
+    text = models.TextField(verbose_name='Комментарий')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    moderator = models.TextField(null=True, verbose_name='Модератор')
+
+    class Meta:
+        verbose_name = 'Комментарий модератора'
+        verbose_name_plural = 'Комментарии модераторов'
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"Комментарий к перевалу {self.pereval.title} ({self.created.strftime('%d.%m.%Y %H:%M')})"
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('status_change', 'Изменение статуса'),
+        ('comment', 'Комментарий модератора'),
+    ]
+
+    pereval = models.ForeignKey(Pereval, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, verbose_name='Тип уведомления')
+    message = models.TextField(verbose_name='Текст уведомления')
+    is_sent = models.BooleanField(default=False, verbose_name='Отправлено')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+        ordering = ['-created']
